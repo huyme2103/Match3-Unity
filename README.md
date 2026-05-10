@@ -1,4 +1,4 @@
-# 🐟 Tile Match — Unity Intern Test 2025
+# Tile Match
 
 > A tile-matching puzzle game built with Unity, featuring multiple game modes, autoplay AI, and a Time Attack challenge.
 
