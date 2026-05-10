@@ -88,7 +88,7 @@ Sử dụng Coroutine kết hợp `SetBusy(true/false)` để **khóa input** tr
 
 ##  Requirements
 
-- **Unity Version:** 2021.3+ (LTS)
+- **Unity Version:** 2022 (LTS)
 - **Dependencies:** [DOTween](http://dotween.demigiant.com/) (đã có sẵn trong project)
 
 ---
