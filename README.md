@@ -53,7 +53,7 @@ Video Demo: https://youtu.be/PU2hx2apaGg
 | Pattern | Mô tả | File liên quan |
 |---------|--------|---------------|
 | **Observer (Action/Event)** | Dùng `Action<T>` và Event để giao tiếp giữa các thành phần mà không phụ thuộc cứng. Ví dụ: `OnTimeUpdateEvent` để cập nhật UI timer, `StateChangedAction` để thông báo trạng thái game. | `BoardController.cs`, `GameManager.cs` |
-| **Single Responsibility (SRP)** | Mỗi class chỉ đảm nhận 1 nhiệm vụ duy nhất (xem bảng bên dưới). | Tất cả |
+| **Single Responsibility (SRP)** | Mỗi class chỉ đảm nhận 1 nhiệm vụ duy nhất. | Tất cả |
 
 ### Animation — DOTween
 
