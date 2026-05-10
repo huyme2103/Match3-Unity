@@ -72,10 +72,6 @@ Toàn bộ animation được xử lý bằng **DOTween**, không dùng Update l
 
 Sử dụng Coroutine kết hợp `SetBusy(true/false)` để **khóa input** trong lúc animation đang chạy, đảm bảo không xảy ra lỗi state khi người chơi tương tác quá nhanh.
 
-```
-Click cá → SetBusy(true) → DOJump bay xuống → Check match → DOScale xóa → Dồn khay → SetBusy(false)
-```
-
 ---
 
 
