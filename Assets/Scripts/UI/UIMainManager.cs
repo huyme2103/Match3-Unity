@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -69,6 +69,9 @@ public class UIMainManager : MonoBehaviour
             case GameManager.eStateGame.GAME_OVER:
                 ShowMenu<UIPanelGameOver>();
                 break;
+            case GameManager.eStateGame.GAME_WIN:
+                ShowMenu<UIPanelWin>();
+                break;
         }
     }
 
@@ -117,5 +120,16 @@ public class UIMainManager : MonoBehaviour
     internal void ShowGameMenu()
     {
         m_gameManager.SetState(GameManager.eStateGame.GAME_STARTED);
+    }
+
+    // --- Giai đoạn 4: Hàm gọi AutoPlay ---
+    internal void LoadLevelAutoWin()
+    {
+        m_gameManager.LoadLevel(GameManager.eLevelMode.MOVES, BoardController.eAutoPlayMode.AUTO_WIN);
+    }
+
+    internal void LoadLevelAutoLose()
+    {
+        m_gameManager.LoadLevel(GameManager.eLevelMode.MOVES, BoardController.eAutoPlayMode.AUTO_LOSE);
     }
 }

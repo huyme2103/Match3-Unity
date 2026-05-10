@@ -1,4 +1,4 @@
-﻿using DG.Tweening;
+using DG.Tweening;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -21,6 +21,7 @@ public class GameManager : MonoBehaviour
         GAME_STARTED,
         PAUSE,
         GAME_OVER,
+        GAME_WIN,
     }
 
     private eStateGame m_state;
@@ -83,9 +84,15 @@ public class GameManager : MonoBehaviour
 
     public void LoadLevel(eLevelMode mode)
     {
-        m_boardController = new GameObject("BoardController").AddComponent<BoardController>();
-        m_boardController.StartGame(this, m_gameSettings);
+        LoadLevel(mode, BoardController.eAutoPlayMode.NONE);
+    }
 
+    public void LoadLevel(eLevelMode mode, BoardController.eAutoPlayMode autoPlayMode)
+    {
+        m_boardController = new GameObject("BoardController").AddComponent<BoardController>();
+        m_boardController.StartGame(this, m_gameSettings, autoPlayMode);
+
+        /* COMMENT CODE CŨ - Tile Match không dùng LevelCondition (timer/moves) nữa
         if (mode == eLevelMode.MOVES)
         {
             m_levelCondition = this.gameObject.AddComponent<LevelMoves>();
@@ -98,13 +105,19 @@ public class GameManager : MonoBehaviour
         }
 
         m_levelCondition.ConditionCompleteEvent += GameOver;
+        */
 
         State = eStateGame.GAME_STARTED;
     }
 
     public void GameOver()
     {
-        StartCoroutine(WaitBoardController());
+        StartCoroutine(WaitBoardController(eStateGame.GAME_OVER));
+    }
+
+    public void GameWin()
+    {
+        StartCoroutine(WaitBoardController(eStateGame.GAME_WIN));
     }
 
     internal void ClearLevel()
@@ -117,16 +130,16 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    private IEnumerator WaitBoardController()
+    private IEnumerator WaitBoardController(eStateGame endState)
     {
-        while (m_boardController.IsBusy)
+        while (m_boardController != null && m_boardController.IsBusy)
         {
             yield return new WaitForEndOfFrame();
         }
 
         yield return new WaitForSeconds(1f);
 
-        State = eStateGame.GAME_OVER;
+        State = endState;
 
         if (m_levelCondition != null)
         {

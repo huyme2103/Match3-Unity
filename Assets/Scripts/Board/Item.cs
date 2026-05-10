@@ -11,7 +11,6 @@ public class Item
 
     public Transform View { get; private set; }
 
-
     public virtual void SetView()
     {
         string prefabname = GetPrefabName();

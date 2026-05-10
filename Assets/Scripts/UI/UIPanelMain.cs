@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -10,18 +10,26 @@ public class UIPanelMain : MonoBehaviour, IMenu
 
     [SerializeField] private Button btnMoves;
 
+    [SerializeField] private Button btnAutoWin;
+
+    [SerializeField] private Button btnAutoLose;
+
     private UIMainManager m_mngr;
 
     private void Awake()
     {
-        btnMoves.onClick.AddListener(OnClickMoves);
-        btnTimer.onClick.AddListener(OnClickTimer);
+        if (btnMoves) btnMoves.onClick.AddListener(OnClickMoves);
+        if (btnTimer) btnTimer.onClick.AddListener(OnClickTimer);
+        if (btnAutoWin) btnAutoWin.onClick.AddListener(OnClickAutoWin);
+        if (btnAutoLose) btnAutoLose.onClick.AddListener(OnClickAutoLose);
     }
 
     private void OnDestroy()
     {
         if (btnMoves) btnMoves.onClick.RemoveAllListeners();
         if (btnTimer) btnTimer.onClick.RemoveAllListeners();
+        if (btnAutoWin) btnAutoWin.onClick.RemoveAllListeners();
+        if (btnAutoLose) btnAutoLose.onClick.RemoveAllListeners();
     }
 
     public void Setup(UIMainManager mngr)
@@ -37,6 +45,16 @@ public class UIPanelMain : MonoBehaviour, IMenu
     private void OnClickMoves()
     {
         m_mngr.LoadLevelMoves();
+    }
+
+    private void OnClickAutoWin()
+    {
+        m_mngr.LoadLevelAutoWin();
+    }
+
+    private void OnClickAutoLose()
+    {
+        m_mngr.LoadLevelAutoLose();
     }
 
     public void Show()
