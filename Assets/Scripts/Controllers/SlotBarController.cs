@@ -14,6 +14,9 @@ public class SlotBarController : MonoBehaviour
     private Board m_board;
     private BoardController m_boardController;
 
+    // Lưu vị trí ban đầu của icon
+    private Dictionary<Item, Cell> m_originalCells = new Dictionary<Item, Cell>();
+
     public int ItemCount => m_slotBar.Count;
     public bool IsFull => m_slotBar.Count >= MAX_SLOT_SIZE;
 
@@ -23,7 +26,7 @@ public class SlotBarController : MonoBehaviour
         m_gameManager = gameManager;
         m_board = board;
 
-        // Tính toán vị trí khay chứa nằm dưới đáy bàn chơi
+        // Tính toán vị trí khay chứa
         m_slotBarOrigin = new Vector3(-2f, -gameSettings.BoardSizeY * 0.5f - 1.5f, 0f);
         GameObject prefabBG = Resources.Load<GameObject>(Constants.PREFAB_CELL_BACKGROUND);
         
@@ -40,16 +43,60 @@ public class SlotBarController : MonoBehaviour
         NormalItem item = cell.Item as NormalItem;
         if (item == null) return;
 
-        cell.Free(); // Nhấc khỏi lưới
-        
-        item.SetSortingLayerHigher(); // Hiển thị đè lên các item khác khi bay
+        // Lưu vị trí gốc trước khi nhấc icon
+        m_originalCells[item] = cell;
 
-        // Cá luôn xếp vào ô trống tiếp theo (cuối khay)
-        m_slotBar.Add(item);
+        cell.Free(); 
         
-        UpdateSlotBarVisuals();
+        item.SetSortingLayerHigher(); 
+
+        
+        m_slotBar.Add(item);
+
+      
+        int slotIndex = m_slotBar.Count - 1;
+        Vector3 targetPos = m_slotBarOrigin + new Vector3(slotIndex * m_slotSpacing, 0, 0);
+        item.View.DOKill();
+        item.View.DOJump(targetPos, 1.5f, 1, 0.35f).SetEase(Ease.OutQuad);
 
         StartCoroutine(CheckMatchInSlotBarCoroutine());
+    }
+
+    // Trả icon cá về
+    public bool ReturnItemToBoard(Item item)
+    {
+        if (!m_slotBar.Contains(item)) return false;
+
+        Cell originalCell;
+        if (!m_originalCells.TryGetValue(item, out originalCell)) return false;
+
+       
+        if (!originalCell.IsEmpty) return false;
+
+        StartCoroutine(ReturnItemCoroutine(item, originalCell));
+        return true;
+    }
+
+    private IEnumerator ReturnItemCoroutine(Item item, Cell originalCell)
+    {
+        m_boardController.SetBusy(true); 
+
+        m_slotBar.Remove(item);
+        m_originalCells.Remove(item);
+
+        // Đặt cá lại vào ô gốc
+        originalCell.Assign(item);
+
+       
+        item.View.DOKill();
+        item.View.DOJump(originalCell.transform.position, 1.5f, 1, 0.35f).SetEase(Ease.OutQuad);
+        item.SetSortingLayerLower();
+
+        // Dồn icon trong khay
+        UpdateSlotBarVisuals();
+
+        yield return new WaitForSeconds(0.35f); 
+        m_boardController.SetBusy(false); 
     }
 
     private void UpdateSlotBarVisuals()
@@ -57,16 +104,17 @@ public class SlotBarController : MonoBehaviour
         for (int i = 0; i < m_slotBar.Count; i++)
         {
             Vector3 targetPos = m_slotBarOrigin + new Vector3(i * m_slotSpacing, 0, 0);
+            m_slotBar[i].View.DOKill();
             m_slotBar[i].View.DOMove(targetPos, 0.2f);
         }
     }
 
     private IEnumerator CheckMatchInSlotBarCoroutine()
     {
-        m_boardController.SetBusy(true); // Khóa input người chơi
-        yield return new WaitForSeconds(0.25f); // Đợi cá bay xuống khay xong
+        m_boardController.SetBusy(true); 
+        yield return new WaitForSeconds(0.25f); 
 
-        // Quét tìm 3 con LIỀN KỀ cùng loại trong khay
+        // Tìm 3 cá giống nhau liền kề
         bool hasMatch = false;
         int startIndex = -1;
 
@@ -87,36 +135,70 @@ public class SlotBarController : MonoBehaviour
 
         if (hasMatch)
         {
-            // Xóa đúng 3 con đứng cạnh nhau
+            // Hiệu ứng thu nhỏ 
             for (int i = 0; i < 3; i++)
             {
-                m_slotBar[startIndex].ExplodeView();
+                Item matchedItem = m_slotBar[startIndex];
+                m_originalCells.Remove(matchedItem); // Xóa khỏi danh sách lưu vị trí
+
+                if (matchedItem.View != null)
+                {
+                    Transform view = matchedItem.View;
+                    view.DOScale(Vector3.zero, 0.3f).SetEase(Ease.InBack).OnComplete(() =>
+                    {
+                        GameObject.Destroy(view.gameObject);
+                    });
+                }
                 m_slotBar.RemoveAt(startIndex);
             }
 
-            yield return new WaitForSeconds(0.2f); // Đợi nổ xong
-            UpdateSlotBarVisuals(); // Dồn các cá còn lại về bên trái
+            yield return new WaitForSeconds(0.35f); 
+            UpdateSlotBarVisuals(); 
             
-            yield return new WaitForSeconds(0.2f); // Đợi cá dồn xong
+            yield return new WaitForSeconds(0.2f); 
         }
 
-        // Kiểm tra điều kiện Thắng / Thua
+        // điều kiện thắng thua
         if (m_board.IsBoardEmpty() && m_slotBar.Count == 0)
         {
-            Debug.Log("🎉 YOU WIN!");
+            
             m_gameManager.GameWin();
         }
-        else if (m_slotBar.Count == MAX_SLOT_SIZE && !hasMatch)
+        else if (m_slotBar.Count == MAX_SLOT_SIZE && !hasMatch && !m_isTimeAttackMode)
         {
-            Debug.Log("💀 YOU LOSE!");
+           
             m_gameManager.GameOver();
         }
-
-        m_boardController.SetBusy(false); // Mở lại input
+        m_boardController.SetBusy(false); 
     }
 
     public List<Item> GetItems()
     {
         return m_slotBar;
+    }
+
+    // Tìm cá trong khay dựa vào vị trí click
+    public Item GetItemAtPosition(Vector3 worldPos)
+    {
+        float clickRadius = 0.5f; 
+        foreach (var item in m_slotBar)
+        {
+            if (item.View != null)
+            {
+                float dist = Vector3.Distance(item.View.position, worldPos);
+                if (dist < clickRadius)
+                {
+                    return item;
+                }
+            }
+        }
+        return null;
+    }
+
+    private bool m_isTimeAttackMode = false;
+
+    public void SetTimeAttackMode(bool isTimeAttack)
+    {
+        m_isTimeAttackMode = isTimeAttack;
     }
 }

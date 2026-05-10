@@ -49,12 +49,12 @@ public class AutoPlayBot : MonoBehaviour
 
     private IEnumerator AutoPlayCoroutine()
     {
-        // Chờ xíu lúc đầu cho mượt
+        
         yield return new WaitForSeconds(1.0f);
 
         while (!m_gameOver && m_gameManager.State == GameManager.eStateGame.GAME_STARTED)
         {
-            // Chờ nếu đang bận xử lý logic bay/nổ cá của lượt trước
+          
             while (m_boardController.IsBusy)
             {
                 yield return null;
@@ -63,28 +63,28 @@ public class AutoPlayBot : MonoBehaviour
             if (m_gameOver || m_gameManager.State != GameManager.eStateGame.GAME_STARTED) break;
 
             List<Cell> activeCells = m_board.GetAllActiveCells();
-            if (activeCells.Count == 0) break; // Đã hết cá trên bàn
+            if (activeCells.Count == 0) break; 
 
             Cell targetCell = null;
 
             if (m_autoPlayMode == BoardController.eAutoPlayMode.AUTO_WIN)
             {
-                // Auto Win: Tìm cá cùng loại với cá đang có trong khay
+                
                 targetCell = FindBestCellForAutoWin(activeCells);
             }
             else if (m_autoPlayMode == BoardController.eAutoPlayMode.AUTO_LOSE)
             {
-                // Auto Lose: Tìm cá KHÁC loại với cá đang có trong khay để nhanh đầy
+               
                 targetCell = FindWorstCellForAutoLose(activeCells);
             }
 
             if (targetCell != null && !m_slotBarController.IsFull)
             {
-                Debug.Log($"Bot nhặt cá: Tọa độ ({targetCell.BoardX}, {targetCell.BoardY}) - Chế độ: {m_autoPlayMode}");
+               // Debug.Log($"Bot nhặt cá: Tọa độ ({targetCell.BoardX}, {targetCell.BoardY}) - Chế độ: {m_autoPlayMode}");
                 m_slotBarController.PickupItem(targetCell);
             }
 
-            // Tốc độ click của Bot (0.5s mỗi lượt)
+            
             yield return new WaitForSeconds(0.5f); 
         }
     }

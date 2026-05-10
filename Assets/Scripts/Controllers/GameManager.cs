@@ -11,7 +11,8 @@ public class GameManager : MonoBehaviour
     public enum eLevelMode
     {
         TIMER,
-        MOVES
+        MOVES,
+        TIME_ATTACK
     }
 
     public enum eStateGame
@@ -89,23 +90,28 @@ public class GameManager : MonoBehaviour
 
     public void LoadLevel(eLevelMode mode, BoardController.eAutoPlayMode autoPlayMode)
     {
+        bool isTimeAttack = (mode == eLevelMode.TIME_ATTACK);
+
         m_boardController = new GameObject("BoardController").AddComponent<BoardController>();
-        m_boardController.StartGame(this, m_gameSettings, autoPlayMode);
+        m_boardController.StartGame(this, m_gameSettings, autoPlayMode, isTimeAttack);
 
-        /* COMMENT CODE CŨ - Tile Match không dùng LevelCondition (timer/moves) nữa
-        if (mode == eLevelMode.MOVES)
+        // Nếu là Time Attack, đăng ký lắng nghe event để cập nhật Text đếm ngược trên UI
+        if (isTimeAttack)
         {
-            m_levelCondition = this.gameObject.AddComponent<LevelMoves>();
-            m_levelCondition.Setup(m_gameSettings.LevelMoves, m_uiMenu.GetLevelConditionView(), m_boardController);
-        }
-        else if (mode == eLevelMode.TIMER)
-        {
-            m_levelCondition = this.gameObject.AddComponent<LevelTime>();
-            m_levelCondition.Setup(m_gameSettings.LevelMoves, m_uiMenu.GetLevelConditionView(), this);
-        }
+            UnityEngine.UI.Text timerText = m_uiMenu.GetLevelConditionView();
+            if (timerText != null)
+            {
+                timerText.gameObject.SetActive(true);
+                m_boardController.OnTimeUpdateEvent += (timeRemaining) =>
+                {
+                    int seconds = Mathf.CeilToInt(Mathf.Max(0f, timeRemaining));
+                    timerText.text = $"⏱ {seconds}s";
 
-        m_levelCondition.ConditionCompleteEvent += GameOver;
-        */
+                    // Đổi màu đỏ khi dưới 10 giây
+                    timerText.color = seconds <= 10 ? Color.red : Color.white;
+                };
+            }
+        }
 
         State = eStateGame.GAME_STARTED;
     }

@@ -14,6 +14,8 @@ public class UIPanelMain : MonoBehaviour, IMenu
 
     [SerializeField] private Button btnAutoLose;
 
+    [SerializeField] private Button btnTimeAttack;
+
     private UIMainManager m_mngr;
 
     private void Awake()
@@ -22,6 +24,7 @@ public class UIPanelMain : MonoBehaviour, IMenu
         if (btnTimer) btnTimer.onClick.AddListener(OnClickTimer);
         if (btnAutoWin) btnAutoWin.onClick.AddListener(OnClickAutoWin);
         if (btnAutoLose) btnAutoLose.onClick.AddListener(OnClickAutoLose);
+        if (btnTimeAttack) btnTimeAttack.onClick.AddListener(OnClickTimeAttack);
     }
 
     private void OnDestroy()
@@ -30,6 +33,7 @@ public class UIPanelMain : MonoBehaviour, IMenu
         if (btnTimer) btnTimer.onClick.RemoveAllListeners();
         if (btnAutoWin) btnAutoWin.onClick.RemoveAllListeners();
         if (btnAutoLose) btnAutoLose.onClick.RemoveAllListeners();
+        if (btnTimeAttack) btnTimeAttack.onClick.RemoveAllListeners();
     }
 
     public void Setup(UIMainManager mngr)
@@ -55,6 +59,11 @@ public class UIPanelMain : MonoBehaviour, IMenu
     private void OnClickAutoLose()
     {
         m_mngr.LoadLevelAutoLose();
+    }
+
+    private void OnClickTimeAttack()
+    {
+        m_mngr.LoadLevelTimeAttack();
     }
 
     public void Show()

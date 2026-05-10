@@ -25,7 +25,6 @@ public class Board
 
     private int m_matchMin;
 
-    #region Board Initialization
     public Board(Transform transform, GameSettings gameSettings)
     {
         m_root = transform;
@@ -79,9 +78,21 @@ public class Board
         int setsOfThree = totalCells / 3;
         
         List<NormalItem.eNormalType> generatedTypes = new List<NormalItem.eNormalType>();
-        
-        // 1. Tạo danh sách các loại cá theo từng bộ 3
-        for (int i = 0; i < setsOfThree; i++)
+
+        var allTypes = System.Enum.GetValues(typeof(NormalItem.eNormalType));
+        int totalTypes = allTypes.Length;
+
+        // Đảm bảo mỗi loại cá xuất hiện ít nhất 1 bộ 3
+        foreach (NormalItem.eNormalType type in allTypes)
+        {
+            generatedTypes.Add(type);
+            generatedTypes.Add(type);
+            generatedTypes.Add(type);
+        }
+
+        // Random các slot còn lại
+        int remainingSets = setsOfThree - totalTypes;
+        for (int i = 0; i < remainingSets; i++)
         {
             NormalItem.eNormalType randomType = Utils.GetRandomNormalType();
             generatedTypes.Add(randomType);
@@ -89,13 +100,14 @@ public class Board
             generatedTypes.Add(randomType);
         }
 
-        // Nếu tổng số ô không chia hết cho 3 (do GameSettings cài đặt sai), fill nốt cho đầy mảng để tránh lỗi
+        // Fill nốt các ô dư (nếu có) để tránh lỗi mảng
         while (generatedTypes.Count < totalCells)
         {
             generatedTypes.Add(Utils.GetRandomNormalType());
         }
 
-        // 2. Xáo trộn (Shuffle) danh sách
+        // Xáo trộn vị trí cá
+
         for (int i = 0; i < generatedTypes.Count; i++)
         {
             NormalItem.eNormalType temp = generatedTypes[i];
@@ -104,7 +116,7 @@ public class Board
             generatedTypes[randomIndex] = temp;
         }
 
-        // 3. Rải cá lên bàn chơi
+        // Gắn cá lên bàn chơi
         int index = 0;
         for (int x = 0; x < boardSizeX; x++)
         {
@@ -149,12 +161,6 @@ public class Board
             }
         }
     }
-    #endregion
-
-    #region Tile Match Logic
-
-
-
 
     public bool IsBoardEmpty()
     {
@@ -198,5 +204,4 @@ public class Board
             }
         }
     }
-    #endregion
 }
