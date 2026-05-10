@@ -30,12 +30,8 @@ public class BoardController : MonoBehaviour
 
     private bool m_gameOver;
 
-    // --- Giai đoạn 2: Biến cho Khay chứa (Slot Bar) ---
-    private List<Item> m_slotBar = new List<Item>();
-    private const int MAX_SLOT_SIZE = 5;
-    private Vector3 m_slotBarOrigin;
-    private float m_slotSpacing = 1.0f;
-
+    private SlotBarController m_slotBarController;
+    private AutoPlayBot m_botAI;
     private eAutoPlayMode m_autoPlayMode = eAutoPlayMode.NONE;
     #endregion
 
@@ -54,24 +50,18 @@ public class BoardController : MonoBehaviour
 
         m_board = new Board(this.transform, gameSettings);
 
-        CreateSlotBarBackground();
+        // Khởi tạo Khay chứa (Slot Bar)
+        m_slotBarController = gameObject.AddComponent<SlotBarController>();
+        m_slotBarController.Init(this, m_gameManager, m_board, m_gameSettings);
+
+        // Khởi tạo Bot AutoPlay
+        m_botAI = gameObject.AddComponent<AutoPlayBot>();
+        m_botAI.Init(this, m_slotBarController, m_board, m_gameManager, m_autoPlayMode);
 
         Fill();
     }
 
-    private void CreateSlotBarBackground()
-    {
-        // Tính toán vị trí khay chứa nằm dưới đáy bàn chơi
-        m_slotBarOrigin = new Vector3(-2f, -m_gameSettings.BoardSizeY * 0.5f - 1.5f, 0f);
-        GameObject prefabBG = Resources.Load<GameObject>(Constants.PREFAB_CELL_BACKGROUND);
-        
-        for (int i = 0; i < MAX_SLOT_SIZE; i++)
-        {
-            GameObject bg = Instantiate(prefabBG);
-            bg.transform.position = m_slotBarOrigin + new Vector3(i * m_slotSpacing, 0, 0);
-            bg.transform.SetParent(this.transform);
-        }
-    }
+
 
     private void Fill()
     {
@@ -80,11 +70,8 @@ public class BoardController : MonoBehaviour
         // Tile Match: Chỉ cần fill bàn, không cần check match liên hoàn như cũ
         IsBusy = false;
 
-        // --- Giai đoạn 4: Bắt đầu AutoPlay nếu có ---
-        if (m_autoPlayMode != eAutoPlayMode.NONE)
-        {
-            StartCoroutine(AutoPlayCoroutine());
-        }
+        // Bắt đầu AutoPlay nếu có
+        m_botAI.StartBot();
     }
 
     private void OnGameStateChange(GameManager.eStateGame state)
@@ -97,6 +84,7 @@ public class BoardController : MonoBehaviour
             case GameManager.eStateGame.PAUSE:
                 IsBusy = true;
                 break;
+            case GameManager.eStateGame.GAME_WIN:
             case GameManager.eStateGame.GAME_OVER:
                 m_gameOver = true;
                 break;
@@ -120,9 +108,9 @@ public class BoardController : MonoBehaviour
                 if (cell != null && !cell.IsEmpty)
                 {
                     // Chỉ nhặt được nếu khay chứa chưa đầy
-                    if (m_slotBar.Count < MAX_SLOT_SIZE)
+                    if (!m_slotBarController.IsFull)
                     {
-                        PickupItem(cell);
+                        m_slotBarController.PickupItem(cell);
                     }
                 }
             }
@@ -130,175 +118,16 @@ public class BoardController : MonoBehaviour
     }
     #endregion
 
-    #region Slot Bar Logic
-    private void PickupItem(Cell cell)
+    #region Public Methods
+    public void SetBusy(bool state)
     {
-        NormalItem item = cell.Item as NormalItem;
-        if (item == null) return;
-
-        cell.Free(); // Nhấc khỏi lưới
-        
-        item.SetSortingLayerHigher(); // Hiển thị đè lên các item khác khi bay
-
-        // Cá luôn xếp vào ô trống tiếp theo (cuối khay)
-        m_slotBar.Add(item);
-        
-        // Di chuyển cá bay xuống vị trí cuối khay
-        UpdateSlotBarVisuals();
-
-        // Đợi di chuyển xong rồi check match
-        StartCoroutine(CheckMatchInSlotBarCoroutine());
+        IsBusy = state;
     }
-
-    private void UpdateSlotBarVisuals()
-    {
-        for (int i = 0; i < m_slotBar.Count; i++)
-        {
-            Vector3 targetPos = m_slotBarOrigin + new Vector3(i * m_slotSpacing, 0, 0);
-            m_slotBar[i].View.DOMove(targetPos, 0.2f);
-        }
-    }
-
-    private IEnumerator CheckMatchInSlotBarCoroutine()
-    {
-        IsBusy = true; // Khóa input người chơi
-        yield return new WaitForSeconds(0.25f); // Đợi cá bay xuống khay xong
-
-        // Quét tìm 3 con LIỀN KỀ cùng loại trong khay
-        bool hasMatch = false;
-        int startIndex = -1;
-
-        for (int i = 0; i <= m_slotBar.Count - 3; i++)
-        {
-            NormalItem a = m_slotBar[i] as NormalItem;
-            NormalItem b = m_slotBar[i + 1] as NormalItem;
-            NormalItem c = m_slotBar[i + 2] as NormalItem;
-
-            if (a != null && b != null && c != null &&
-                a.ItemType == b.ItemType && b.ItemType == c.ItemType)
-            {
-                startIndex = i;
-                hasMatch = true;
-                break;
-            }
-        }
-
-        if (hasMatch)
-        {
-            // Xóa đúng 3 con đứng cạnh nhau ở vị trí startIndex
-            for (int i = 0; i < 3; i++)
-            {
-                m_slotBar[startIndex].ExplodeView();
-                m_slotBar.RemoveAt(startIndex);
-            }
-
-            yield return new WaitForSeconds(0.2f); // Đợi nổ xong
-            UpdateSlotBarVisuals(); // Dồn các cá còn lại về bên trái
-            
-            yield return new WaitForSeconds(0.2f); // Đợi cá dồn xong
-        }
-
-        // Kiểm tra điều kiện Thắng / Thua
-        if (m_board.IsBoardEmpty() && m_slotBar.Count == 0)
-        {
-            // THẮNG
-            Debug.Log("🎉 YOU WIN!");
-            m_gameManager.GameWin();
-        }
-        else if (m_slotBar.Count == MAX_SLOT_SIZE && !hasMatch)
-        {
-            // THUA
-            Debug.Log("💀 YOU LOSE!");
-            m_gameManager.GameOver();
-        }
-
-        IsBusy = false; // Mở lại input
-    }
-    #endregion
-
-    #region AutoPlay Logic
-    private IEnumerator AutoPlayCoroutine()
-    {
-        // Chờ xíu lúc đầu cho mượt
-        yield return new WaitForSeconds(1.0f);
-
-        while (!m_gameOver && m_gameManager.State == GameManager.eStateGame.GAME_STARTED)
-        {
-            // Chờ nếu đang bận xử lý logic bay/nổ cá của lượt trước
-            while (IsBusy)
-            {
-                yield return null;
-            }
-
-            if (m_gameOver || m_gameManager.State != GameManager.eStateGame.GAME_STARTED) break;
-
-            List<Cell> activeCells = m_board.GetAllActiveCells();
-            if (activeCells.Count == 0) break; // Đã hết cá trên bàn
-
-            Cell targetCell = null;
-
-            if (m_autoPlayMode == eAutoPlayMode.AUTO_WIN)
-            {
-                // Auto Win: Tìm cá cùng loại với cá đang có trong khay
-                targetCell = FindBestCellForAutoWin(activeCells);
-            }
-            else if (m_autoPlayMode == eAutoPlayMode.AUTO_LOSE)
-            {
-                // Auto Lose: Tìm cá KHÁC loại với cá đang có trong khay để nhanh đầy
-                targetCell = FindWorstCellForAutoLose(activeCells);
-            }
-
-            if (targetCell != null && m_slotBar.Count < MAX_SLOT_SIZE)
-            {
-                Debug.Log($"Bot nhặt cá: Tọa độ ({targetCell.BoardX}, {targetCell.BoardY}) - Chế độ: {m_autoPlayMode}");
-                PickupItem(targetCell);
-            }
-
-            // Tốc độ click của Bot (0.5s mỗi lượt)
-            yield return new WaitForSeconds(0.5f); 
-        }
-    }
-
-    private Cell FindBestCellForAutoWin(List<Cell> activeCells)
-    {
-        // 1. Nếu trong khay đang có cá, tìm cá cùng loại trên bàn
-        var groups = m_slotBar.Cast<NormalItem>().GroupBy(x => x.ItemType).ToList();
-        if (groups.Count > 0)
-        {
-            // Tìm loại cá đang có số lượng nhiều nhất trong khay (để ưu tiên nhặt cho nổ sớm)
-            var bestGroup = groups.OrderByDescending(g => g.Count()).First();
-            NormalItem.eNormalType targetType = bestGroup.Key;
-
-            Cell foundCell = activeCells.FirstOrDefault(c => (c.Item as NormalItem)?.ItemType == targetType);
-            if (foundCell != null) return foundCell;
-        }
-
-        // 2. Nếu khay trống hoặc không tìm thấy cá cùng loại trên bàn, nhặt bừa 1 con
-        return activeCells[UnityEngine.Random.Range(0, activeCells.Count)];
-    }
-
-    private Cell FindWorstCellForAutoLose(List<Cell> activeCells)
-    {
-        // Auto Lose: Tìm loại cá CHƯA có trong khay để làm đầy khay mà không nổ
-        var typesInSlot = m_slotBar.Cast<NormalItem>().Select(x => x.ItemType).Distinct().ToList();
-
-        // Tìm con cá có loại không nằm trong typesInSlot
-        Cell badCell = activeCells.FirstOrDefault(c => 
-        {
-            NormalItem item = c.Item as NormalItem;
-            return item != null && !typesInSlot.Contains(item.ItemType);
-        });
-
-        if (badCell != null) return badCell;
-
-        // Nếu xui xẻo không có (ví dụ trên bàn chỉ còn đúng các loại đang có trong khay), nhặt bừa
-        return activeCells[UnityEngine.Random.Range(0, activeCells.Count)];
-    }
-    #endregion
 
     internal void Clear()
     {
         m_board.Clear();
     }
+    #endregion
 }
 
