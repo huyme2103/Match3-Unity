@@ -2,11 +2,11 @@
 
 > A tile-matching puzzle game built with Unity, featuring multiple game modes, autoplay AI, and a Time Attack challenge.
 
-
+Video Demo: https://youtu.be/PU2hx2apaGg
 ---
 
 
-## ✅ Completed Tasks
+##  Completed Tasks
 
 ### Task 2: Change the Gameplay
 
@@ -46,7 +46,7 @@
 
 ---
 
-## 🛠️ Technical Implementation Notes
+## Technical Implementation Notes
 
 ### Architecture & Design Patterns
 
@@ -79,7 +79,7 @@ Click cá → SetBusy(true) → DOJump bay xuống → Check match → DOScale x
 ---
 
 
-## 🎮 How to Play
+##  How to Play
 
 | Chế độ | Mô tả |
 |--------|--------|
@@ -90,7 +90,7 @@ Click cá → SetBusy(true) → DOJump bay xuống → Check match → DOScale x
 
 ---
 
-## 🔧 Requirements
+##  Requirements
 
 - **Unity Version:** 2021.3+ (LTS)
 - **Dependencies:** [DOTween](http://dotween.demigiant.com/) (đã có sẵn trong project)
